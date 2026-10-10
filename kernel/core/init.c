@@ -25,6 +25,7 @@
 #include "hook/syscall_hook.h"
 #include "feature/adb_root.h"
 #include "feature/selinux_hide.h"
+#include "feature/module_load_filter.h"
 #include "infra/symbol_resolver.h"
 
 #if defined(__x86_64__) && !defined(CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER)
@@ -87,6 +88,10 @@ module_param_named(norc, ksu_no_custom_rc, bool, 0);
 bool ksu_bundled = false;
 module_param_named(bundled, ksu_bundled, bool, 0);
 #endif
+
+char ksu_block_modules[KSU_BLOCK_MODULES_MAX_LEN];
+module_param_string(block_modules, ksu_block_modules, sizeof(ksu_block_modules), 0);
+MODULE_PARM_DESC(block_modules, "Comma-separated preset module names to acknowledge without loading");
 
 int __init kernelsu_init(void)
 {
@@ -160,6 +165,7 @@ int __init kernelsu_init(void)
         ksu_load_allow_list();
 
         ksu_syscall_hook_manager_init();
+        ksu_module_load_filter_hook_init();
 
         ksu_throne_tracker_init();
         ksu_observer_init();
@@ -175,6 +181,7 @@ int __init kernelsu_init(void)
 
     } else {
         ksu_syscall_hook_manager_init();
+        ksu_module_load_filter_hook_init();
 
         ksu_allowlist_init();
 
@@ -196,6 +203,7 @@ int __init kernelsu_init(void)
 void __exit kernelsu_exit(void)
 {
     // Phase 1: Stop all hooks first to prevent new callbacks
+    ksu_module_load_filter_hook_exit();
     ksu_syscall_hook_manager_exit();
 
     ksu_supercalls_exit();

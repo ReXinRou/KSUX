@@ -18,6 +18,20 @@ use regex_lite::Regex;
 
 use crate::assets;
 
+const DEFAULT_BLOCK_MODULES: &str = "vr,vklp,oplus_secure_guard,oplus_secure_guard_new";
+const BLOCK_MODULES_MAX_LEN: usize = 255;
+
+fn valid_block_modules(modules: &str) -> bool {
+    modules.len() <= BLOCK_MODULES_MAX_LEN
+        && (modules.is_empty()
+            || modules.split(',').all(|name| {
+                !name.is_empty()
+                    && name
+                        .bytes()
+                        .all(|ch| ch.is_ascii_alphanumeric() || ch == b'_' || ch == b'-')
+            }))
+}
+
 #[cfg(target_os = "android")]
 mod android {
     use super::Result;
@@ -505,6 +519,11 @@ pub struct BootPatchArgs {
     #[arg(long, default_value = "false")]
     no_custom_rc: bool,
 
+    /// Comma-separated preset module names to acknowledge without loading
+    /// (empty disables the filter)
+    #[arg(long, value_name = "NAMES", default_value = DEFAULT_BLOCK_MODULES)]
+    block_modules: Option<String>,
+
     #[cfg(not(target_os = "android"))]
     #[arg(long, default_value = "aarch64")]
     arch: String,
@@ -538,10 +557,18 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             #[cfg(target_os = "android")]
             partition,
             no_custom_rc,
+            block_modules,
             #[cfg(not(target_os = "android"))]
             arch,
             ramdisk,
         } = args;
+
+        if let Some(modules) = &block_modules {
+            ensure!(
+                valid_block_modules(modules),
+                "blocked module list must be at most 255 bytes and contain only letters, digits, '_' or '-'"
+            );
+        }
 
         println!(include_str!("banner"));
 
@@ -753,6 +780,18 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
         apply_config("allow shell", "allow_shell=1", allow_shell);
         if let Some(bundled) = bundled_lkm {
             apply_config("bundled LKM", "bundled=1", bundled);
+        }
+
+        // The module load filter is driven by the `block_modules` module
+        // parameter, passed to kernelsu.ko through the ksu_config line.
+        if let Some(modules) = &block_modules {
+            ksu_config.retain(|v| !v.starts_with("block_modules="));
+            if modules.is_empty() {
+                println!("- Disabling module load filter");
+            } else {
+                println!("- Blocking modules: {modules}");
+                ksu_config.push(format!("block_modules={modules}"));
+            }
         }
 
         if ksu_config.is_empty() {
