@@ -156,6 +156,32 @@ fun getSuperuserCount(): Int {
     return Natives.getSuperuserCount()
 }
 
+private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
+fun listKernelUmountPaths(): String {
+    val shell = getRootShell()
+    return shell.newJob().add("${getKsuDaemonPath()} kernel umount list")
+        .to(ArrayList(), null).exec().out.joinToString("\n").trim()
+}
+
+fun addKernelUmountPath(path: String, flags: Int): Boolean =
+    execKsud("kernel umount add ${shellQuote(path)} --flags $flags", true)
+
+fun removeKernelUmountPath(path: String): Boolean =
+    execKsud("kernel umount del ${shellQuote(path)}", true)
+
+fun listUmountConfigUmountPaths(): String {
+    val shell = getRootShell()
+    return shell.newJob().add("${getKsuDaemonPath()} umount-config list")
+        .to(ArrayList(), null).exec().out.joinToString("\n").trim()
+}
+
+fun addUmountConfigUmountPath(path: String, flags: Int): Boolean =
+    execKsud("umount-config add ${shellQuote(path)} --flags $flags", true)
+
+fun removeUmountConfigUmountPath(path: String): Boolean =
+    execKsud("umount-config del ${shellQuote(path)}", true)
+
 fun toggleModule(id: String, enable: Boolean): Boolean {
     val cmd = if (enable) {
         "module enable $id"

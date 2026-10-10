@@ -207,6 +207,20 @@
     <string name="settings_sucompat_summary">Allow Root access via /system/bin/su, in new processes</string>
     <string name="settings_kernel_umount">Kernel umount</string>
     <string name="settings_kernel_umount_summary">Unmount modules from kernel in App Profile</string>
+
+    <string name="settings_umount_path_manager">Umount path manager</string>
+    <string name="settings_umount_path_manager_summary">Manage persistent mount paths unmounted from apps with a profile</string>
+    <string name="umount_add_path">Add umount path</string>
+    <string name="umount_mount_path">Mount path</string>
+    <string name="umount_flags">Umount flags</string>
+    <string name="umount_flags_hint">0 = unused, 1 = MNT_FORCE, 2 = MNT_DETACH, 4 = MNT_EXPIRE, 8 = UMOUNT_NOFOLLOW</string>
+    <string name="umount_persistent">Persistent</string>
+    <string name="umount_temporary">Temporary</string>
+    <string name="umount_no_paths">No umount paths configured</string>
+    <string name="umount_remove">Remove</string>
+    <string name="umount_path_added">Umount path added</string>
+    <string name="umount_path_removed">Umount path removed</string>
+    <string name="umount_operation_failed">Operation failed</string>
     <string name="settings_selinux_hide">Hide SELinux modification</string>
     <string name="settings_selinux_hide_summary">Prevent applications from detecting SELinux modifications</string>
     <string name="settings_selinux_hide_reboot_required">Reboot to take effect</string>

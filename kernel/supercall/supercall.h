@@ -31,6 +31,8 @@ void ksu_supercalls_exit(void);
 #define CHANGE_MANAGER_UID 10006
 #define KSU_UMOUNT_GETSIZE 107   // get list size // shit is u8 we cant fit 10k+ on it
 #define KSU_UMOUNT_GETLIST 108   // get list
+#define KSU_UMOUNT_GETSIZE_WITH_FLAGS 109 // get list size, appends flags per entry
+#define KSU_UMOUNT_GETLIST_WITH_FLAGS 110 // get list, appends flags per entry
 #define GET_SULOG_DUMP 10009     // sulogv1 placeholder
 #define GET_SULOG_DUMP_V2 10010     // get sulog dump, max, last 250 escalations
 #define CHANGE_KSUVER 10011     // change ksu version

@@ -376,6 +376,67 @@ pub fn umount_list_del(path: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Modes for querying the umount list together with each entry's flags.
+/// These are the WITH_FLAGS variants of KSU_UMOUNT_GETSIZE / KSU_UMOUNT_GETLIST.
+const KSU_UMOUNT_GETSIZE_WITH_FLAGS: u8 = 109;
+const KSU_UMOUNT_GETLIST_WITH_FLAGS: u8 = 110;
+
+/// A single umount list entry: a mount point and the umount flags applied to it.
+pub struct UmountEntry {
+    pub path: String,
+    pub flags: u32,
+}
+
+/// List every entry of the umount list, including each entry's flags.
+///
+/// The kernel returns a flat buffer of `path\0` followed by the native-endian
+/// `u32` flags, repeated for every entry.
+pub fn umount_list_list() -> anyhow::Result<Vec<UmountEntry>> {
+    const FLAGS_SIZE: usize = std::mem::size_of::<u32>();
+
+    let mut total_size: usize = 0;
+    let mut size_cmd = ksu_uapi::ksu_add_try_umount_cmd {
+        arg: &raw mut total_size as u64,
+        flags: 0,
+        mode: KSU_UMOUNT_GETSIZE_WITH_FLAGS,
+    };
+    ksuctl(ksu_uapi::KSU_IOCTL_ADD_TRY_UMOUNT, &raw mut size_cmd)?;
+
+    if total_size == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut buffer = vec![0u8; total_size];
+    let mut list_cmd = ksu_uapi::ksu_add_try_umount_cmd {
+        arg: buffer.as_mut_ptr() as u64,
+        flags: 0,
+        mode: KSU_UMOUNT_GETLIST_WITH_FLAGS,
+    };
+    ksuctl(ksu_uapi::KSU_IOCTL_ADD_TRY_UMOUNT, &raw mut list_cmd)?;
+
+    let mut entries = Vec::new();
+    let len = buffer.len();
+    let mut cursor = 0;
+    while cursor < len {
+        let Some(null_pos) = buffer[cursor..].iter().position(|&b| b == 0) else {
+            break;
+        };
+        let end_str = cursor + null_pos;
+        let path = String::from_utf8_lossy(&buffer[cursor..end_str]).into_owned();
+        cursor = end_str + 1;
+
+        if cursor + FLAGS_SIZE > len {
+            break;
+        }
+        let flags = u32::from_ne_bytes(buffer[cursor..cursor + FLAGS_SIZE].try_into()?);
+        cursor += FLAGS_SIZE;
+
+        entries.push(UmountEntry { path, flags });
+    }
+
+    Ok(entries)
+}
+
 /// Set current process's process group to init_group (pgid = 0)
 pub fn set_init_pgrp() -> Result<()> {
     ksuctl(

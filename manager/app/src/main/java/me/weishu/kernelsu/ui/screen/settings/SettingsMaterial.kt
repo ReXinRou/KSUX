@@ -156,23 +156,40 @@ fun SettingPagerMaterial(
             )
 
             val profileTemplate = stringResource(id = R.string.settings_profile_template)
+            val umountPathManager = stringResource(id = R.string.settings_umount_path_manager)
             KsuIsValid {
                 SegmentedColumn(
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
-                    content = listOf {
-                        SegmentedListItem(
-                            onClick = actions.onOpenProfileTemplate,
-                            headlineContent = { Text(profileTemplate) },
-                            supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },
-                            leadingContent = { Icon(Icons.Filled.Description, profileTemplate) },
-                            trailingContent = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    null
-                                )
-                            }
-                        )
-                    }
+                    content = listOf(
+                        {
+                            SegmentedListItem(
+                                onClick = actions.onOpenProfileTemplate,
+                                headlineContent = { Text(profileTemplate) },
+                                supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },
+                                leadingContent = { Icon(Icons.Filled.Description, profileTemplate) },
+                                trailingContent = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        null
+                                    )
+                                }
+                            )
+                        },
+                        {
+                            SegmentedListItem(
+                                onClick = actions.onOpenUmountManager,
+                                headlineContent = { Text(umountPathManager) },
+                                supportingContent = { Text(stringResource(id = R.string.settings_umount_path_manager_summary)) },
+                                leadingContent = { Icon(Icons.Filled.LayersClear, umountPathManager) },
+                                trailingContent = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        null
+                                    )
+                                }
+                            )
+                        }
+                    )
                 )
             }
 

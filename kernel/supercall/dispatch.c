@@ -676,6 +676,27 @@ static int add_try_umount(void __user *arg)
         return 0;
     }
         
+    // Like KSU_UMOUNT_GETSIZE but appends sizeof(unsigned int) per entry for flags
+    case KSU_UMOUNT_GETSIZE_WITH_FLAGS: {
+        // check for pointer first
+        if (!cmd.arg)
+            return -EFAULT;
+
+        size_t total_size = 0; // size of list in bytes
+
+        down_read(&mount_list_lock);
+        list_for_each_entry(entry, &mount_list, list) {
+            total_size = total_size + strlen(entry->umountable) + 1; // + 1 for \0
+            total_size += sizeof(entry->flags);
+        }
+        up_read(&mount_list_lock);
+
+        if (copy_to_user((size_t __user *)cmd.arg, &total_size, sizeof(total_size)))
+            return -EFAULT;
+
+        return 0;
+    }
+
     // WARNING! this is straight up pointerwalking.
     // this way we dont need to redefine the ioctl defs.
     // this also avoids us needing to kmalloc
@@ -700,6 +721,36 @@ static int add_try_umount(void __user *arg)
 
             // walk it! +1 for null terminator
             user_buf = user_buf + strlen(entry->umountable) + 1;
+        }
+        up_read(&mount_list_lock);
+
+        return 0;
+    }
+
+    // Like KSU_UMOUNT_GETLIST but emits each entry's flags right after its
+    // null-terminated path, so userspace can reconstruct path + flags.
+    case KSU_UMOUNT_GETLIST_WITH_FLAGS: {
+        // check for pointer first
+        if (!cmd.arg)
+            return -EFAULT;
+
+        char *user_buf = (char *)cmd.arg;
+
+        down_read(&mount_list_lock);
+        list_for_each_entry(entry, &mount_list, list) {
+            size_t len = strlen(entry->umountable) + 1;
+
+            if (copy_to_user((char __user *)user_buf, entry->umountable, len)) {
+                up_read(&mount_list_lock);
+                return -EFAULT;
+            }
+            user_buf += len;
+
+            if (copy_to_user((char __user *)user_buf, &entry->flags, sizeof(entry->flags))) {
+                up_read(&mount_list_lock);
+                return -EFAULT;
+            }
+            user_buf += sizeof(entry->flags);
         }
         up_read(&mount_list_lock);
 

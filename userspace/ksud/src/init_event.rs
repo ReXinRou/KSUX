@@ -113,6 +113,11 @@ pub fn on_post_fs_data() -> Result<()> {
         warn!("execute metamodule mount failed: {e}");
     }
 
+    // Load umount config and apply to kernel
+    if let Err(e) = crate::umount_config::load_umount_config() {
+        warn!("load umount config failed: {e}");
+    }
+
     run_stage("post-mount", wait);
 
     std::env::set_current_dir("/").with_context(|| "failed to chdir to /")?;

@@ -48,6 +48,9 @@ mod android {
     pub const PERSIST_CONFIG_NAME: &str = "persist.config";
     pub const TEMP_CONFIG_NAME: &str = "tmp.config";
 
+    // Persisted umount config
+    pub const UMOUNT_CONFIG_PATH: &str = concatcp!(WORKING_DIR, ".umount");
+
     // Metamodule support
     pub const METAMODULE_MOUNT_SCRIPT: &str = "metamount.sh";
     pub const METAMODULE_METAINSTALL_SCRIPT: &str = "metainstall.sh";

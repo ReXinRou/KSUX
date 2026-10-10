@@ -203,6 +203,20 @@ fun SettingPagerMiuix(
                                 },
                                 onClick = actions.onOpenProfileTemplate
                             )
+                            val umountPathManager = stringResource(id = R.string.settings_umount_path_manager)
+                            ArrowPreference(
+                                title = umountPathManager,
+                                summary = stringResource(id = R.string.settings_umount_path_manager_summary),
+                                startAction = {
+                                    Icon(
+                                        Icons.Rounded.LayersClear,
+                                        modifier = Modifier.padding(end = 6.dp),
+                                        contentDescription = umountPathManager,
+                                        tint = colorScheme.onBackground
+                                    )
+                                },
+                                onClick = actions.onOpenUmountManager
+                            )
                         }
                     }
 

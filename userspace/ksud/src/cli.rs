@@ -140,6 +140,12 @@ enum Commands {
         command: Kernel,
     },
 
+    /// Manage auto apply user custom umount configs
+    UmountConfig {
+        #[command(subcommand)]
+        command: UmountConfigOp,
+    },
+
     /// Resetprop - Magisk-compatible system property tool
     #[command(disable_help_flag = true)]
     Resetprop {
@@ -481,6 +487,29 @@ enum UmountOp {
     },
     /// Wipe all entries from umount list
     Wipe,
+    /// List all entries from umount list
+    List,
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum UmountConfigOp {
+    /// Add an new umount config to configuration file
+    Add {
+        /// mount point path
+        mnt: String,
+        /// umount flags (default: 0, MNT_DETACH: 2)
+        #[arg(short, long, default_value = "0")]
+        flags: u32,
+    },
+    /// Delete an umount config from configuration file
+    Del {
+        /// mount point path
+        mnt: String,
+    },
+    /// Clear all auto apply umount config from configuration file
+    Wipe,
+    /// List all configured auto apply umount configuration
+    List,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -802,9 +831,27 @@ pub fn run() -> Result<()> {
                 UmountOp::Add { mnt, flags } => ksucalls::umount_list_add(&mnt, flags),
                 UmountOp::Del { mnt } => ksucalls::umount_list_del(&mnt),
                 UmountOp::Wipe => ksucalls::umount_list_wipe(),
+                UmountOp::List => {
+                    let entries = ksucalls::umount_list_list()?;
+                    let json: Vec<_> = entries
+                        .iter()
+                        .map(|e| serde_json::json!({ "path": e.path, "flags": e.flags }))
+                        .collect();
+                    println!("{}", serde_json::Value::Array(json));
+                    Ok(())
+                }
             },
             Kernel::NotifyModuleMounted => {
                 ksucalls::report_module_mounted();
+                Ok(())
+            }
+        },
+        Commands::UmountConfig { command } => match command {
+            UmountConfigOp::Add { mnt, flags } => crate::umount_config::add_umount(&mnt, flags),
+            UmountConfigOp::Del { mnt } => crate::umount_config::del_umount(&mnt),
+            UmountConfigOp::Wipe => crate::umount_config::wipe_umount(),
+            UmountConfigOp::List => {
+                crate::umount_config::list_umount();
                 Ok(())
             }
         },
