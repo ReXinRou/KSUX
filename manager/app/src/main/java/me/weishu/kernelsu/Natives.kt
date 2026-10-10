@@ -28,6 +28,13 @@ object Natives {
 
     const val KERNEL_SU_DOMAIN = "u:r:ksu:s0"
 
+    // restoreAllowlistFromFd result codes
+    const val ALLOWLIST_RESTORE_SUCCESS = 0
+    const val ALLOWLIST_RESTORE_INVALID_FILE = 1
+    const val ALLOWLIST_RESTORE_UNSUPPORTED_VERSION = 2
+    const val ALLOWLIST_RESTORE_IO_ERROR = 3
+    const val ALLOWLIST_RESTORE_PROFILE_ERROR = 4
+
     const val ROOT_UID = 0
     const val ROOT_GID = 0
 
@@ -68,6 +75,15 @@ object Natives {
      */
     external fun getAppProfile(key: String?, uid: Int): Profile
     external fun setAppProfile(profile: Profile?): Boolean
+
+    /**
+     * Restore the allowlist from a file descriptor.
+     * @param fd an open, readable fd positioned at the start of the backup file.
+     * @param failedUid a single-element array that receives the uid of the first
+     *                  profile that could not be applied, if any.
+     * @return one of the ALLOWLIST_RESTORE_* result codes.
+     */
+    external fun restoreAllowlistFromFd(fd: Int, failedUid: IntArray): Int
 
     /**
      * `su` compat mode can be disabled temporarily.

@@ -6,8 +6,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -15,6 +18,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
+import me.weishu.kernelsu.R
+import me.weishu.kernelsu.data.model.AllowlistOperationResult
 import me.weishu.kernelsu.data.repository.SettingsRepository
 import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
 import me.weishu.kernelsu.data.repository.SuperUserRepository
@@ -22,6 +27,7 @@ import me.weishu.kernelsu.data.repository.SuperUserRepositoryImpl
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.screen.superuser.GroupedApps
+import me.weishu.kernelsu.ui.screen.superuser.SuperUserEvent
 import me.weishu.kernelsu.ui.screen.superuser.SuperUserUiState
 import me.weishu.kernelsu.ui.util.PinyinUtil
 import me.weishu.kernelsu.ui.util.ownerNameForUid
@@ -103,6 +109,9 @@ class SuperUserViewModel(
 
     private val _uiState = MutableStateFlow(SuperUserUiState())
     val uiState: StateFlow<SuperUserUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<SuperUserEvent>(extraBufferCapacity = 1)
+    val events: SharedFlow<SuperUserEvent> = _events.asSharedFlow()
 
     private val refreshMutex = Mutex()
     private val searchQuery = MutableStateFlow("")
@@ -402,6 +411,35 @@ class SuperUserViewModel(
             } else {
                 refreshAppList(resort)
             }
+        }
+    }
+
+    fun backupAllowlist(uri: String) {
+        viewModelScope.launch {
+            val result = repo.backupAllowlist(uri)
+            _events.emit(SuperUserEvent.Message(operationMessage(result, restore = false)))
+        }
+    }
+
+    fun restoreAllowlist(uri: String) {
+        viewModelScope.launch {
+            val result = repo.restoreAllowlist(uri)
+            if (result == AllowlistOperationResult.Success) {
+                refreshAppList(resort = true)
+            }
+            _events.emit(SuperUserEvent.Message(operationMessage(result, restore = true)))
+        }
+    }
+
+    private fun operationMessage(result: AllowlistOperationResult, restore: Boolean): String {
+        val action = if (restore) R.string.allowlist_restore else R.string.allowlist_backup
+        val base = ksuApp.getString(action)
+        return when (result) {
+            is AllowlistOperationResult.Success -> ksuApp.getString(R.string.allowlist_operation_success, base)
+            is AllowlistOperationResult.InvalidFile -> ksuApp.getString(R.string.allowlist_operation_invalid_file, base)
+            is AllowlistOperationResult.UnsupportedVersion -> ksuApp.getString(R.string.allowlist_operation_unsupported_version, base)
+            is AllowlistOperationResult.ProfileUpdateFailed -> ksuApp.getString(R.string.allowlist_operation_profile_failed, result.uid)
+            is AllowlistOperationResult.Failed -> ksuApp.getString(R.string.allowlist_operation_failed, base)
         }
     }
 

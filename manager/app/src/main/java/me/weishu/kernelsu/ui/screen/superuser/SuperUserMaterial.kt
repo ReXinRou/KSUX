@@ -240,6 +240,31 @@ fun SuperUserPagerMaterial(
                                     )
                                 }
                             }
+
+                            Spacer(Modifier.height(MenuDefaults.GroupSpacing))
+
+                            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 2)) {
+                                SelectableDropdownMenuItem(
+                                    text = { Text(stringResource(R.string.allowlist_backup)) },
+                                    selected = false,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                                        showDropdown = false
+                                        actions.onBackupAllowlist()
+                                    },
+                                    shapes = MenuDefaults.itemShape(index = 0, count = 2),
+                                )
+                                SelectableDropdownMenuItem(
+                                    text = { Text(stringResource(R.string.allowlist_restore)) },
+                                    selected = false,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                                        showDropdown = false
+                                        actions.onRestoreAllowlist()
+                                    },
+                                    shapes = MenuDefaults.itemShape(index = 1, count = 2),
+                                )
+                            }
                         }
                     }
                 },

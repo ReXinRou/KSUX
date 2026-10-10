@@ -45,7 +45,13 @@ data class SuperUserActions(
     val onToggleShowOnlyPrimaryUserApps: () -> Unit,
     val onUpdateSortConfig: (AppSortConfig) -> Unit,
     val onOpenProfile: (GroupedApps) -> Unit,
+    val onBackupAllowlist: () -> Unit = {},
+    val onRestoreAllowlist: () -> Unit = {},
 )
+
+sealed interface SuperUserEvent {
+    data class Message(val message: String) : SuperUserEvent
+}
 
 @Immutable
 data class StatusMeta(

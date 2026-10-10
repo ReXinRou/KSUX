@@ -11,12 +11,16 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import com.topjohnwu.superuser.Shell
+import com.topjohnwu.superuser.io.SuFile
+import com.topjohnwu.superuser.io.SuFileInputStream
 import com.topjohnwu.superuser.ipc.RootService
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.IKsuInterface
 import me.weishu.kernelsu.Natives
+import me.weishu.kernelsu.data.model.AllowlistOperationResult
 import me.weishu.kernelsu.data.model.AppInfo
 import me.weishu.kernelsu.data.model.WEBVIEW_ZYGOTE_PROFILE_KEY
 import me.weishu.kernelsu.data.model.WEBVIEW_ZYGOTE_UID
@@ -29,6 +33,7 @@ class SuperUserRepositoryImpl : SuperUserRepository {
 
     companion object {
         private const val TAG = "SuperUserRepository"
+        private const val ALLOWLIST_PATH = "/data/adb/ksu/.allowlist"
     }
 
     override suspend fun getAppList(): Result<Pair<List<AppInfo>, List<Int>>> = withContext(Dispatchers.IO) {
@@ -124,6 +129,43 @@ class SuperUserRepositoryImpl : SuperUserRepository {
                 val profile = Natives.getAppProfile(it.profileKey, it.uid)
                 it.copy(profile = profile)
             }
+        }
+    }
+
+    override suspend fun backupAllowlist(uri: String): AllowlistOperationResult = withContext(Dispatchers.IO) {
+        try {
+            SuFileInputStream.open(SuFile(ALLOWLIST_PATH)).use { input ->
+                val output = ksuApp.contentResolver.openOutputStream(android.net.Uri.parse(uri))
+                    ?: return@withContext AllowlistOperationResult.Failed()
+                output.use { input.copyTo(it) }
+            }
+            AllowlistOperationResult.Success
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            AllowlistOperationResult.Failed(error)
+        }
+    }
+
+    override suspend fun restoreAllowlist(uri: String): AllowlistOperationResult = withContext(Dispatchers.IO) {
+        try {
+            val descriptor = ksuApp.contentResolver.openFileDescriptor(android.net.Uri.parse(uri), "r")
+                ?: return@withContext AllowlistOperationResult.InvalidFile
+            val failedUid = IntArray(1)
+            val status = descriptor.use {
+                Natives.restoreAllowlistFromFd(it.fd, failedUid)
+            }
+            when (status) {
+                Natives.ALLOWLIST_RESTORE_SUCCESS -> AllowlistOperationResult.Success
+                Natives.ALLOWLIST_RESTORE_INVALID_FILE -> AllowlistOperationResult.InvalidFile
+                Natives.ALLOWLIST_RESTORE_UNSUPPORTED_VERSION -> AllowlistOperationResult.UnsupportedVersion
+                Natives.ALLOWLIST_RESTORE_PROFILE_ERROR -> AllowlistOperationResult.ProfileUpdateFailed(failedUid[0])
+                else -> AllowlistOperationResult.Failed()
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            AllowlistOperationResult.Failed(error)
         }
     }
 

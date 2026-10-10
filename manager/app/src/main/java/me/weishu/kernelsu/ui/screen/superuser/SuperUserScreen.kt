@@ -1,22 +1,35 @@
 package me.weishu.kernelsu.ui.screen.superuser
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.LocalUiMode
 import me.weishu.kernelsu.ui.UiMode
+import me.weishu.kernelsu.ui.component.dialog.ConfirmResult
+import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.navigation3.Navigator
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun SuperUserPager(
@@ -28,6 +41,48 @@ fun SuperUserPager(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val latestIsCurrentPage by rememberUpdatedState(isCurrentPage)
     val initialResumeHandled = rememberSaveable { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val confirmDialog = rememberConfirmDialog()
+    val restoreTitle = stringResource(R.string.allowlist_restore_confirm_title)
+    val restoreMessage = stringResource(R.string.allowlist_restore_confirm_message)
+    val confirmText = stringResource(R.string.confirm)
+    val cancelText = stringResource(android.R.string.cancel)
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is SuperUserEvent.Message -> Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    val backupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
+    ) { uri ->
+        if (uri != null) {
+            viewModel.backupAllowlist(uri.toString())
+        }
+    }
+    val restoreLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val confirmed = confirmDialog.awaitConfirm(
+                    title = restoreTitle,
+                    content = restoreMessage,
+                    confirm = confirmText,
+                    dismiss = cancelText,
+                )
+                if (confirmed == ConfirmResult.Confirmed) {
+                    viewModel.restoreAllowlist(uri.toString())
+                }
+            }
+        }
+    }
 
     LaunchedEffect(isCurrentPage) {
         if (isCurrentPage) {
@@ -78,6 +133,8 @@ fun SuperUserPager(
         onToggleShowOnlyPrimaryUserApps = onToggleShowOnlyPrimaryUserApps,
         onUpdateSortConfig = { viewModel.updateSortConfig(it) },
         onOpenProfile = onOpenProfile,
+        onBackupAllowlist = { backupLauncher.launch(createAllowlistBackupFileName()) },
+        onRestoreAllowlist = { restoreLauncher.launch(arrayOf("*/*")) },
     )
 
     when (LocalUiMode.current) {
@@ -93,4 +150,9 @@ fun SuperUserPager(
             bottomInnerPadding = bottomInnerPadding,
         )
     }
+}
+
+private fun createAllowlistBackupFileName(): String {
+    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    return "ksu_allowlist_backup_$timestamp.dat"
 }

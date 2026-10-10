@@ -340,4 +340,13 @@
     <string name="nav_rail_collapse">Collapse navigation rail</string>
     <string name="settings_navigation_badge">Navigation badge</string>
     <string name="settings_navigation_badge_summary">Show granted app and enabled module counts on the navigation bar</string>
+    <string name="allowlist_backup">Backup allowlist</string>
+    <string name="allowlist_restore">Restore allowlist</string>
+    <string name="allowlist_restore_confirm_title">Restore allowlist</string>
+    <string name="allowlist_restore_confirm_message">Restoring will overwrite the current superuser and per-app settings for the entries in the backup file. Continue?</string>
+    <string name="allowlist_operation_success">%s succeeded</string>
+    <string name="allowlist_operation_invalid_file">%s failed: invalid or corrupted file</string>
+    <string name="allowlist_operation_unsupported_version">%s failed: unsupported file version</string>
+    <string name="allowlist_operation_profile_failed">Failed to restore the profile for uid %d</string>
+    <string name="allowlist_operation_failed">%s failed</string>
 </resources>

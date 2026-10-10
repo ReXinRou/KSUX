@@ -238,6 +238,32 @@ fun SuperUserPagerMiuix(
                                                     index = 1
                                                 )
                                             }
+
+                                            HorizontalDivider(
+                                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                                                thickness = 1.5.dp,
+                                            )
+
+                                            DropdownImpl(
+                                                text = stringResource(R.string.allowlist_backup),
+                                                isSelected = false,
+                                                optionSize = size + 2,
+                                                onSelectedIndexChange = {
+                                                    actions.onBackupAllowlist()
+                                                    showTopPopup.value = false
+                                                },
+                                                index = size
+                                            )
+                                            DropdownImpl(
+                                                text = stringResource(R.string.allowlist_restore),
+                                                isSelected = false,
+                                                optionSize = size + 2,
+                                                onSelectedIndexChange = {
+                                                    actions.onRestoreAllowlist()
+                                                    showTopPopup.value = false
+                                                },
+                                                index = size + 1
+                                            )
                                         }
                                     }
                                 )
